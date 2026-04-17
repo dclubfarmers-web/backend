@@ -59,7 +59,7 @@ const applyToJob = async (req, res) => {
                 <p style="margin: 0; font-size: 0.9rem;"><strong>Position:</strong> ${job?.title}</p>
                 <p style="margin: 0; font-size: 0.9rem;"><strong>Status:</strong> Under Review</p>
             </div>
-            <p style="margin-top: 25px; font-size: 0.8rem; color: #94A3B8;">Powered by DJAIRINDIA Career Engine.</p>
+            <p style="margin-top: 25px; font-size: 0.8rem; color: #94A3B8;">Powered by DCLUB FARMERS Career Engine.</p>
           </div>
         `,
       });

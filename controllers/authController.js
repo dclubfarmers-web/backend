@@ -58,7 +58,7 @@ const setupFirstAdmin = async (req, res) => {
   
       await supabase.from('settings').upsert([
         { key: 'system_initialized', value: { date: new Date(), by: email } },
-        { key: 'seo', value: { title: siteName || 'DJAIRINDIA', description: 'Premier Aviation Solutions' } },
+        { key: 'seo', value: { title: siteName || 'DCLUB FARMERS', description: 'Premier Aviation Solutions' } },
         { key: 'contact', value: { email: email, phone: '', address: '' } }
       ]);
   
@@ -66,13 +66,13 @@ const setupFirstAdmin = async (req, res) => {
       try {
         await sendEmail({
           to: email,
-          subject: 'DJAIRINDIA: Root System Initialized',
+          subject: 'DCLUB FARMERS: Root System Initialized',
           text: `Hi ${fullName}, your master administrative account has been created and the system is live.`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: #0891B2;">System Initialization Successful</h2>
               <p>Hi ${fullName},</p>
-              <p>Your master administrator account for **${siteName || 'DJAIRINDIA'}** has been established successfully.</p>
+              <p>Your master administrator account for **${siteName || 'DCLUB FARMERS'}** has been established successfully.</p>
               <p>The system setup portal has been permanently locked for security. You can now manage your platform via the admin dashboard.</p>
               <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/login" style="display: inline-block; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">Access Command Center</a>
             </div>

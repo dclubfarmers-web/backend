@@ -15,13 +15,13 @@ const submitContact = async (req, res) => {
       // To User
       await sendEmail({
         to: email,
-        subject: `Thank you for contacting DJAIRINDIA: ${subject || 'General Inquiry'}`,
+        subject: `Thank you for contacting DCLUB FARMERS: ${subject || 'General Inquiry'}`,
         text: `Hi ${name}, we have received your message and will get back to you soon.`,
         html: `
           <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
             <h2 style="color: #0891B2;">Message Received</h2>
             <p>Hi ${name},</p>
-            <p>Thank you for reaching out to **DJAIRINDIA PVT LTD**. We have received your message regarding "<strong>${subject || 'General Inquiry'}</strong>".</p>
+            <p>Thank you for reaching out to **DCLUB FARMERS PVT LTD**. We have received your message regarding "<strong>${subject || 'General Inquiry'}</strong>".</p>
             <p>Our team will review your inquiry and get back to you shortly.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
             <p style="font-size: 12px; color: #666;">This is an automated confirmation of your contact form submission.</p>

@@ -10,7 +10,7 @@ const protect = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'djairindia_secure_kernel_2026');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'DCLUB FARMERS_secure_kernel_2026');
 
       req.user = decoded;
       return next(); // Critical: Return after calling next to stop execution
@@ -42,7 +42,7 @@ const optionalProtect = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       const token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'djairindia_secure_kernel_2026');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'DCLUB FARMERS_secure_kernel_2026');
       req.user = decoded;
     } catch (error) {
       // Ignore token if invalid for optional protection

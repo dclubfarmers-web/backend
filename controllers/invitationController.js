@@ -21,12 +21,12 @@ const inviteAdmin = async (req, res) => {
 
     await sendEmail({
       to: email,
-      subject: 'Invitation to Join DJAIRINDIA Admin Panel',
-      text: `You have been invited to join the DJAIRINDIA Admin Panel. Click here to register: ${inviteLink}`,
+      subject: 'Invitation to Join DCLUB FARMERS Admin Panel',
+      text: `You have been invited to join the DCLUB FARMERS Admin Panel. Click here to register: ${inviteLink}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #0891B2;">DJAIRINDIA Invitation</h2>
-          <p>You have been invited to join the **Admin Panel** for DJAIRINDIA.</p>
+          <h2 style="color: #0891B2;">DCLUB FARMERS Invitation</h2>
+          <p>You have been invited to join the **Admin Panel** for DCLUB FARMERS.</p>
           <p>This invitation will expire in 7 days.</p>
           <a href="${inviteLink}" style="display: inline-block; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">Accept Invitation</a>
           <p style="margin-top: 20px; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link: ${inviteLink}</p>

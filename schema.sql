@@ -1,4 +1,4 @@
--- DJAIRINDIA Custom Auth Database Schema
+-- DCLUB FARMERS Custom Auth Database Schema
 
 -- Clean reset (Optional: Remove if you don't want to lose data)
 DROP TABLE IF EXISTS activity_logs CASCADE;

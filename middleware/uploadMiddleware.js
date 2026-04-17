@@ -7,13 +7,13 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
     // Determine folder and resource type
-    let folder = 'djairindia/misc';
+    let folder = 'DCLUB FARMERS/misc';
     let resource_type = 'auto'; // Handles images, pdfs, etc.
 
     if (file.mimetype.startsWith('image/')) {
-      folder = 'djairindia/images';
+      folder = 'DCLUB FARMERS/images';
     } else if (file.mimetype === 'application/pdf') {
-      folder = 'djairindia/documents';
+      folder = 'DCLUB FARMERS/documents';
     }
 
     return {
