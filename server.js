@@ -19,22 +19,11 @@ const xss = require('xss-clean');
 
 const app = express();
 
-// Security Middleware
-app.use(helmet()); // Sets various security-focused HTTP headers
-app.use(xss());    // Prevents Cross-Site Scripting (XSS) attacks
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
-});
-app.use('/api/', limiter);
-
-// CORS Policy
+// 1. CORS Policy - MUST BE FIRST to handle preflight requests and set headers for all responses
 const allowedOrigins = [
   'https://www.dclubfarmers.com',
   'https://dclubfarmers.com',
+  'https://dclubfarmers-frontend.vercel.app', // Adding Vercel default domain just in case
   'http://localhost:5173',
   'http://localhost:3000'
 ];
@@ -43,14 +32,41 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    
+    // Check if the origin is allowed
+    const isAllowed = allowedOrigins.some(allowed => {
+      // Direct match
+      if (allowed === origin) return true;
+      // Match even if the origin has a trailing slash
+      if (allowed === origin.replace(/\/$/, '')) return true;
+      return false;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
+
+// 2. Security Middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Explicitly allow cross-origin
+}));
+app.use(xss());    // Prevents Cross-Site Scripting (XSS) attacks
+
+// 3. Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Increased limit for production
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api/', limiter);
 
 app.use(express.json({ limit: '10kb' })); // Body parser, with limit to prevent large payload attacks
 
