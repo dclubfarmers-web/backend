@@ -11,6 +11,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const invitationRoutes = require('./routes/invitationRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const blogRoutes = require('./routes/blogRoutes');
+const seoRoutes = require('./routes/seoRoutes');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
