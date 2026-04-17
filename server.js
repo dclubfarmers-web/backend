@@ -12,11 +12,46 @@ const invitationRoutes = require('./routes/invitationRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const xss = require('xss-clean');
+
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security Middleware
+app.use(helmet()); // Sets various security-focused HTTP headers
+app.use(xss());    // Prevents Cross-Site Scripting (XSS) attacks
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api/', limiter);
+
+// CORS Policy
+const allowedOrigins = [
+  'https://www.dclubfarmers.com',
+  'https://dclubfarmers.com',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
+app.use(express.json({ limit: '10kb' })); // Body parser, with limit to prevent large payload attacks
 
 // Routes
 app.use('/api/auth', authRoutes);
