@@ -5,9 +5,9 @@ const {
   getDPRs,
   updateDPRStatus,
 } = require('../controllers/dprController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, optionalProtect } = require('../middleware/authMiddleware');
 
-router.post('/', protect, createDPR);
+router.post('/', optionalProtect, createDPR);
 router.get('/', protect, getDPRs);
 router.put('/:id/status', protect, admin, updateDPRStatus);
 

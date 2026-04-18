@@ -5,16 +5,26 @@ const sendEmail = require('../config/mailer');
 // @route   POST /api/dpr
 // @access  Private
 const createDPR = async (req, res) => {
-  const { title, details, dreamValue } = req.body;
+  const { title, details, dreamValue, dprUrl, fullName, email, phone } = req.body;
 
   try {
-    const dpr = await DPR.create({
+    const dprData = {
       title,
       details,
       dream_value: dreamValue,
-      user_id: req.user.id,
       status: 'pending',
-    });
+      dpr_url: dprUrl
+    };
+
+    if (req.user?.id) {
+        dprData.user_id = req.user.id;
+    } else {
+        dprData.guest_name = fullName;
+        dprData.guest_email = email;
+        dprData.guest_phone = phone;
+    }
+
+    const dpr = await DPR.create(dprData);
 
     // Send Confirmation Email
     try {

@@ -65,6 +65,10 @@ CREATE TABLE dprs (
     title TEXT NOT NULL,
     details TEXT,
     dream_value NUMERIC,
+    dpr_url TEXT,
+    guest_name TEXT,
+    guest_email TEXT,
+    guest_phone TEXT,
     status TEXT DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -126,3 +130,9 @@ CREATE TABLE activity_logs (
 -- RLS (Note: Since we are using custom auth, Supabase RLS is less critical as we verify JWT in our own backend, 
 -- but we can still enable it using JWT claims if using Supabase client directly. 
 -- For now, we'll keep it simple as our backend will handle auth).
+
+-- 11. Seed Career Ecosystem Markers (Fixed UUIDs for Frontend Reference)
+INSERT INTO jobs (id, title, description, company, location, job_type) 
+VALUES ('00000000-0000-0000-0000-000000000001', 'Dream Achiever Program', 'Elite incubation program for high-impact agricultural visionaries.', 'DJAIRINDIA', 'Remote', 'Elite') ON CONFLICT DO NOTHING;
+INSERT INTO jobs (id, title, description, company, location, job_type) 
+VALUES ('00000000-0000-0000-0000-000000000002', 'General Talent Pool', 'Generic application submission for future ecosystem opportunities.', 'DJAIRINDIA', 'Pan India', 'General') ON CONFLICT DO NOTHING;
