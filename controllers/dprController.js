@@ -66,7 +66,8 @@ const createDPR = async (req, res) => {
 
     res.status(201).json({ message: 'DPR created successfully', dpr });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    console.error('CREATE DPR ERROR:', err);
+    res.status(500).json({ message: err.message || 'Server error' });
   }
 };
 
@@ -76,16 +77,25 @@ const createDPR = async (req, res) => {
 const getDPRs = async (req, res) => {
   try {
     let dprs;
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
+
+    console.log(`GET DPRs requested by: ${req.user?.email || 'Unknown'}, Role: ${userRole}`);
+    
     // If not admin, only show user's own DPRs
-    if (req.user.user_metadata.role !== 'admin') {
-      dprs = await DPR.findByUserId(req.user.id);
-    } else {
+    if (userRole === 'admin') {
       dprs = await DPR.findAll();
+    } else {
+      if (!userId) {
+          return res.status(401).json({ message: 'User identity not found' });
+      }
+      dprs = await DPR.findByUserId(userId);
     }
 
-    res.status(200).json(dprs);
+    res.status(200).json(dprs || []);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    console.error('GET DPRs ERROR:', err);
+    res.status(500).json({ message: 'Failed to fetch DPR records', error: err.message });
   }
 };
 
@@ -96,11 +106,16 @@ const updateDPRStatus = async (req, res) => {
   const { status } = req.body;
   const { id } = req.params;
 
+  if (!id || !status) {
+      return res.status(400).json({ message: 'ID and Status are required' });
+  }
+
   try {
     const dpr = await DPR.update(id, { status });
     res.status(200).json({ message: 'DPR status updated', dpr });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    console.error('UPDATE DPR STATUS ERROR:', err);
+    res.status(500).json({ message: 'Failed to update DPR status', error: err.message });
   }
 };
 

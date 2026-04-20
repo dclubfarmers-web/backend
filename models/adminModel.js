@@ -35,7 +35,7 @@ const Admin = {
     return data[0];
   },
 
-  async getAll() {
+  async findAll() {
     const { data, error } = await supabase
       .from('admins')
       .select('id, full_name, email, role, created_at')

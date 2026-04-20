@@ -1,6 +1,8 @@
 const Invitation = require('../models/invitationModel');
+const Admin = require('../models/adminModel');
 const sendEmail = require('../config/mailer');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 // @desc    Invite a new admin
 // @route   POST /api/invitations
@@ -40,6 +42,42 @@ const inviteAdmin = async (req, res) => {
   }
 };
 
+// @desc    Accept admin invitation
+// @route   POST /api/invitations/accept
+// @access  Public
+const acceptInvitation = async (req, res) => {
+  const { token, fullName, password } = req.body;
+
+  try {
+    const invitation = await Invitation.findByToken(token);
+    
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invalid or expired invitation token' });
+    }
+
+    if (new Date(invitation.expires_at) < new Date()) {
+      await Invitation.delete(invitation.id);
+      return res.status(400).json({ message: 'Invitation has expired' });
+    }
+
+    // Create the admin account
+    const admin = await Admin.create({
+      full_name: fullName,
+      email: invitation.email,
+      password: password, // Admin.create hashes the password
+      role: invitation.role
+    });
+
+    // Delete the invitation
+    await Invitation.delete(invitation.id);
+
+    res.status(201).json({ message: 'Account created successfully', user: admin });
+  } catch (err) {
+    console.error('Accept Invitation Error:', err);
+    res.status(500).json({ message: 'Failed to accept invitation', error: err.message });
+  }
+};
+
 // @desc    Get all invitations
 // @route   GET /api/invitations
 // @access  Private/Admin
@@ -52,7 +90,31 @@ const getInvitations = async (req, res) => {
   }
 };
 
+// @desc    Get invitation by token (Public)
+// @route   GET /api/invitations/:token
+const getInvitationByToken = async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const invitation = await Invitation.findByToken(token);
+    
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invalid or expired invitation token' });
+    }
+
+    if (new Date(invitation.expires_at) < new Date()) {
+      return res.status(400).json({ message: 'Invitation has expired' });
+    }
+
+    res.status(200).json(invitation);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to Fetch invitation', error: err.message });
+  }
+};
+
 module.exports = {
   inviteAdmin,
+  acceptInvitation,
   getInvitations,
+  getInvitationByToken,
 };
