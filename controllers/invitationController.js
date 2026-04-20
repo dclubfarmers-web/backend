@@ -19,7 +19,7 @@ const inviteAdmin = async (req, res) => {
       invited_by: req.user.id,
     });
 
-    const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/accept-invite?token=${token}`;
+    const inviteLink = `${process.env.FRONTEND_URL || 'https://www.dclubfarmers.com'}/admin/accept-invite?token=${token}`;
 
     await sendEmail({
       to: email,

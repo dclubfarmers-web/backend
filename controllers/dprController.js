@@ -56,7 +56,7 @@ const createDPR = async (req, res) => {
             <p><strong>Vision:</strong> ${title}</p>
             <p><strong>Target Value:</strong> ₹${dreamValue.toLocaleString()}</p>
             <p><strong>Insights:</strong> ${details}</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/dprs" style="display: inline-block; margin-top: 20px; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Review in Dashboard</a>
+            <a href="${process.env.FRONTEND_URL || 'https://www.dclubfarmers.com'}/admin/dprs" style="display: inline-block; margin-top: 20px; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Review in Dashboard</a>
           </div>
         `,
       });

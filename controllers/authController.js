@@ -74,7 +74,7 @@ const setupFirstAdmin = async (req, res) => {
               <p>Hi ${fullName},</p>
               <p>Your master administrator account for **${siteName || 'DCLUB FARMERS'}** has been established successfully.</p>
               <p>The system setup portal has been permanently locked for security. You can now manage your platform via the admin dashboard.</p>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/login" style="display: inline-block; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">Access Command Center</a>
+              <a href="${process.env.FRONTEND_URL || 'https://www.dclubfarmers.com'}/admin/login" style="display: inline-block; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">Access Command Center</a>
             </div>
           `,
         });

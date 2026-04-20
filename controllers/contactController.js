@@ -43,7 +43,7 @@ const submitContact = async (req, res) => {
             <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #0891B2;">
               ${message}
             </div>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/inbox" style="display: inline-block; margin-top: 20px; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">View in Dashboard</a>
+            <a href="${process.env.FRONTEND_URL || 'https://www.dclubfarmers.com'}/admin/inbox" style="display: inline-block; margin-top: 20px; background: #0891B2; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">View in Dashboard</a>
           </div>
         `,
       });

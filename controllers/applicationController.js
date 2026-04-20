@@ -85,7 +85,7 @@ const applyToJob = async (req, res) => {
                 <strong>Resume Link:</strong><br/>
                 <a href="${resumeUrl}" style="color: #0369A1; word-break: break-all;">${resumeUrl}</a>
             </div>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/applications" style="display: inline-block; margin-top: 25px; background: #0369A1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Ingest to Dashboard</a>
+            <a href="${process.env.FRONTEND_URL || 'https://www.dclubfarmers.com'}/admin/applications" style="display: inline-block; margin-top: 25px; background: #0369A1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Ingest to Dashboard</a>
           </div>
         `,
       });
