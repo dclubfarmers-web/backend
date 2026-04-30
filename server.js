@@ -96,6 +96,10 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/', seoRoutes); // Mount SEO routes (sitemap, robots)
+
+// Favicon handler to prevent 404s
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Root endpoint - Live System Dashboard
 app.get('/', async (req, res) => {
@@ -119,15 +123,15 @@ app.get('/', async (req, res) => {
       const Application = require('./models/applicationModel');
       const Admin = require('./models/adminModel');
 
-      // Run multiple checks in parallel
-      const results = await Promise.allSettled([
-        Job.countDocuments(),
-        Blog.countDocuments(),
-        Application.countDocuments(),
-        Admin.countDocuments()
-      ]);
+      // Run multiple checks in parallel with a timeout to avoid hanging
+      const countPromises = [
+        Job.countDocuments().catch(() => 0),
+        Blog.countDocuments().catch(() => 0),
+        Application.countDocuments().catch(() => 0),
+        Admin.countDocuments().catch(() => 0)
+      ];
 
-      const [jobsCount, blogsCount, appsCount, adminsCount] = results.map(r => r.status === 'fulfilled' ? r.value : 0);
+      const [jobsCount, blogsCount, appsCount, adminsCount] = await Promise.all(countPromises);
       
       counts = {
         jobs: jobsCount,
@@ -137,7 +141,7 @@ app.get('/', async (req, res) => {
       };
     }
   } catch (e) {
-    dbStatus = `Exception: ${e.message}`;
+    dbStatus = `Status Check Error: ${e.message}`;
   }
 
   res.json({
@@ -171,6 +175,11 @@ app.get('/api/health', (req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
+  // If headers already sent, delegate to default express error handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
   console.error('Unhandled Error:', err);
   
   // Ensure CORS headers are present even in error responses

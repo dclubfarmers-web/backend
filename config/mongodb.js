@@ -37,7 +37,7 @@ const connectDB = async () => {
 
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
-    if (process.env.NODE_ENV === 'production') process.exit(1);
+    // Don't exit process, let the application handle the disconnected state
   }
 };
 
