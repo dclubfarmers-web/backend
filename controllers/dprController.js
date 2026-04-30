@@ -9,6 +9,10 @@ const { getPresignedUrl, deleteFromS3 } = require('../utils/storageUtils');
 const createDPR = async (req, res) => {
   const { title, details, dreamValue, dprUrl, dprKey, fullName, email, phone, tenure, expectedProfit, investmentValue, expectedOutcome } = req.body;
 
+  if (!dprUrl) {
+    return res.status(400).json({ message: 'DPR Artifact (PDF) is required for submission.' });
+  }
+
   try {
     // Find the Dream Achiever Program job or create a placeholder
     let job = await Job.findOne({ title: 'Dream Achiever Program' });
