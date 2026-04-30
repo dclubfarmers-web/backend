@@ -6,7 +6,6 @@ require('dotenv').config();
 
 // Configure DNS (using system defaults on Vercel)
 // dns.setServers(['8.8.8.8', '8.8.4.4']);
-
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const dprRoutes = require('./routes/dprRoutes');
@@ -30,8 +29,9 @@ try {
   console.error('Could not load package.json');
 }
 
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+// Security and rate limiting disabled for debugging 500 error
+// const helmet = require('helmet');
+// const rateLimit = require('express-rate-limit');
 
 const app = express();
 
@@ -72,18 +72,11 @@ app.use(cors({
 app.options('*', cors());
 
 // 2. Security Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Explicitly allow cross-origin
-}));
-// Note: xss-clean is removed as it's deprecated and can cause issues with Express 5
+// app.use(helmet({
+//   crossOriginResourcePolicy: { policy: "cross-origin" }
+// }));
 
-// 3. Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased limit for production
-  message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
-});
-app.use('/api/', limiter);
+// app.use('/api/', limiter);
 
 app.use(express.json({ limit: '10kb' })); // Body parser, with limit to prevent large payload attacks
 
