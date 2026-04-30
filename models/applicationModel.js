@@ -32,6 +32,14 @@ const applicationSchema = new mongoose.Schema({
     type: String,
     default: 'applied',
   },
+  tenure: {
+    type: Number,
+    default: 0,
+  },
+  expected_profit: {
+    type: Number,
+    default: 1.0,
+  },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
