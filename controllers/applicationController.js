@@ -47,32 +47,6 @@ const applyToJob = async (req, res) => {
 
     const application = await Application.create(applicationData);
 
-    // If it's a DPR job, also create a record in the DPR collection for the DPR Requests page
-    if (job.title === 'Dream Achiever Program' || job.title.includes('DPR')) {
-      try {
-        await DPR.create({
-          job_id: jobId,
-          applicant_id: applicationData.applicant_id,
-          title: req.body.projectTitle || `Dream Request: ${fullName}`,
-          details: summary,
-          dream_value: investment_value || 0,
-          investment_value: investment_value || 0,
-          expected_outcome: expected_outcome || 0,
-          expected_profit: expected_profit || 1.0,
-          tenure: tenure || 0,
-          dpr_url: resumeUrl,
-          dpr_key: resumeKey || req.body.resumeKey,
-          guest_name: fullName,
-          guest_email: email,
-          guest_phone: phone,
-          status: 'pending'
-        });
-      } catch (dprErr) {
-        console.error('Failed to duplicate record to DPR collection:', dprErr);
-        // We don't fail the whole request because the primary application was created
-      }
-    }
-
     const applicantName = fullName || req.user?.full_name || 'Candidate';
     const applicantEmail = email || req.user?.email || 'N/A';
 

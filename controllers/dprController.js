@@ -7,7 +7,7 @@ const { getPresignedUrl, deleteFromS3 } = require('../utils/storageUtils');
 // @route   POST /api/dpr
 // @access  Private
 const createDPR = async (req, res) => {
-  const { title, details, dreamValue, dprUrl, dprKey, fullName, email, phone } = req.body;
+  const { title, details, dreamValue, dprUrl, dprKey, fullName, email, phone, tenure, expectedProfit, investmentValue, expectedOutcome } = req.body;
 
   try {
     // Find the Dream Achiever Program job or create a placeholder
@@ -26,7 +26,11 @@ const createDPR = async (req, res) => {
       job_id: job._id,
       title,
       details,
-      dream_value: dreamValue,
+      dream_value: dreamValue || investmentValue || 0,
+      investment_value: investmentValue || dreamValue || 0,
+      expected_outcome: expectedOutcome || 0,
+      expected_profit: expectedProfit || 1.0,
+      tenure: tenure || 0,
       status: 'pending',
       dpr_url: dprUrl,
       dpr_key: dprKey
