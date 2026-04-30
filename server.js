@@ -31,6 +31,9 @@ const connectDB = require('./config/mongodb');
 // Initialize Express
 const app = express();
 
+// Trust proxy for Vercel / Load Balancers
+app.set('trust proxy', 1);
+
 // 1. Database Connection
 connectDB();
 
@@ -74,7 +77,8 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 4. Rate Limiting (Optimized for Vercel)
+// 4. Rate Limiting (Disabled for production stability on Vercel)
+/*
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000, 
@@ -84,6 +88,19 @@ const limiter = rateLimit({
   skip: (req) => process.env.NODE_ENV !== 'production'
 });
 app.use('/api/', limiter);
+*/
+
+// Root endpoint - Live System Dashboard (Priority)
+app.get('/', (req, res) => {
+  const state = mongoose.connection.readyState;
+  const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
+  res.json({
+    status: 'Operational',
+    project: 'DCLUB FARMERS API',
+    database: states[state] || 'Unknown',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // 5. API Routes
 app.use('/api/auth', authRoutes);
@@ -100,18 +117,7 @@ app.use('/api/blogs', blogRoutes);
 app.use('/', seoRoutes);
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Root endpoint - Live System Dashboard
-app.get('/', (req, res) => {
-  const state = mongoose.connection.readyState;
-  const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
-  
-  res.json({
-    status: 'Operational',
-    project: 'DCLUB FARMERS API',
-    database: states[state] || 'Unknown',
-    timestamp: new Date().toISOString()
-  });
-});
+// Root endpoint moved to top
 
 // Health Check
 app.get('/api/health', (req, res) => {
