@@ -47,6 +47,6 @@ dprSchema.set('toJSON', { virtuals: true });
 dprSchema.set('toObject', { virtuals: true });
 dprSchema.virtual('id').get(function() { return this._id.toHexString(); });
 
-const DPR = mongoose.model('DPR', dprSchema);
+const DPR = mongoose.models.DPR || mongoose.model('DPR', dprSchema);
 
 module.exports = DPR;

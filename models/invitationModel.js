@@ -27,6 +27,6 @@ const invitationSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at' }
 });
 
-const Invitation = mongoose.model('Invitation', invitationSchema);
+const Invitation = mongoose.models.Invitation || mongoose.model('Invitation', invitationSchema);
 
 module.exports = Invitation;

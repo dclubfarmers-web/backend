@@ -32,6 +32,6 @@ jobSchema.set('toJSON', { virtuals: true });
 jobSchema.set('toObject', { virtuals: true });
 jobSchema.virtual('id').get(function() { return this._id.toHexString(); });
 
-const Job = mongoose.model('Job', jobSchema);
+const Job = mongoose.models.Job || mongoose.model('Job', jobSchema);
 
 module.exports = Job;

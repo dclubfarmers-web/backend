@@ -40,6 +40,6 @@ applicationSchema.set('toJSON', { virtuals: true });
 applicationSchema.set('toObject', { virtuals: true });
 applicationSchema.virtual('id').get(function() { return this._id.toHexString(); });
 
-const Application = mongoose.model('Application', applicationSchema);
+const Application = mongoose.models.Application || mongoose.model('Application', applicationSchema);
 
 module.exports = Application;

@@ -23,6 +23,6 @@ const logSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at' }
 });
 
-const Log = mongoose.model('Log', logSchema);
+const Log = mongoose.models.Log || mongoose.model('Log', logSchema);
 
 module.exports = Log;

@@ -14,6 +14,6 @@ const settingsSchema = new mongoose.Schema({
   timestamps: { updatedAt: 'updated_at' }
 });
 
-const Settings = mongoose.model('Settings', settingsSchema);
+const Settings = mongoose.models.Settings || mongoose.model('Settings', settingsSchema);
 
 module.exports = Settings;
