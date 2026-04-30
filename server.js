@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dns = require('dns');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Configure Google DNS for the application
@@ -103,70 +104,22 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Root endpoint - Live System Dashboard
 app.get('/', async (req, res) => {
-  const start = Date.now();
-  const mongoose = require('mongoose');
-  let dbStatus = 'Disconnected';
-  let latency = 'N/A';
-  let counts = { jobs: 0, blogs: 0, applications: 0, admins: 0 };
-
   try {
     const state = mongoose.connection.readyState;
     const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
-    dbStatus = states[state] || 'Unknown';
+    const dbStatus = states[state] || 'Unknown';
 
-    if (state === 1) { // Connected
-      latency = `${Date.now() - start}ms`;
-      
-      // Import models for counts
-      const Job = require('./models/jobModel');
-      const Blog = require('./models/blogModel');
-      const Application = require('./models/applicationModel');
-      const Admin = require('./models/adminModel');
-
-      // Run multiple checks in parallel with a timeout to avoid hanging
-      const countPromises = [
-        Job.countDocuments().catch(() => 0),
-        Blog.countDocuments().catch(() => 0),
-        Application.countDocuments().catch(() => 0),
-        Admin.countDocuments().catch(() => 0)
-      ];
-
-      const [jobsCount, blogsCount, appsCount, adminsCount] = await Promise.all(countPromises);
-      
-      counts = {
-        jobs: jobsCount,
-        blogs: blogsCount,
-        applications: appsCount,
-        admins: adminsCount
-      };
-    }
-  } catch (e) {
-    dbStatus = `Status Check Error: ${e.message}`;
-  }
-
-  res.json({
-    project: 'DCLUB FARMERS',
-    api_status: 'Operational',
-    version: pkg.version || '1.0.0',
-    environment: process.env.NODE_ENV || 'production',
-    live_stats: {
-      active_listings: counts.jobs,
-      published_articles: counts.blogs,
-      total_candidates: counts.applications,
-      system_operators: counts.admins
-    },
-    database: {
-      status: dbStatus,
-      latency: latency,
-      provider: 'MongoDB'
-    },
-    server: {
-      uptime: `${Math.floor(process.uptime() / 3600)}h ${Math.floor((process.uptime() % 3600) / 60)}m ${Math.floor(process.uptime() % 60)}s`,
-      memory_usage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024 * 100) / 100} MB`,
+    res.json({
+      project: 'DCLUB FARMERS',
+      api_status: 'Operational',
+      database: dbStatus,
       timestamp: new Date().toISOString()
-    }
-  });
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Internal Dashboard Error', message: e.message });
+  }
 });
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
