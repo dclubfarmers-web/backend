@@ -1,15 +1,11 @@
 {
   "version": 2,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.js" }
+  ],
   "functions": {
-    "server.js": {
-      "memory": 1024,
-      "maxDuration": 10
+    "api/index.js": {
+      "maxDuration": 15
     }
-  },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "server.js" },
-    { "src": "/sitemap.xml", "dest": "server.js" },
-    { "src": "/robots.txt", "dest": "server.js" },
-    { "src": "/(.*)", "dest": "server.js" }
-  ]
+  }
 }

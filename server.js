@@ -1,14 +1,25 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const connectDB = require('./config/db');
 require('dotenv').config();
 
-// Global Error Catching for Serverless Stability
-process.on('uncaughtException', (err) => {
-  console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('CRITICAL UNHANDLED REJECTION:', reason);
+// Initialize App
+const app = express();
+
+// Global Middleware
+app.set('trust proxy', 1);
+app.use(cors({
+    origin: true, // Allow all origins for debugging, will tighten later
+    credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Lazy Database Connection Middleware
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
 });
 
 // Import Routes
@@ -22,80 +33,17 @@ const invitationRoutes = require('./routes/invitationRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const seoRoutes = require('./routes/seoRoutes');
-const connectDB = require('./config/mongodb');
 
-// Initialize Express
-const app = express();
-
-// Trust proxy for Vercel / Load Balancers
-app.set('trust proxy', 1);
-
-// 1. Database Connection (Lazy Pattern for Serverless)
-app.use(async (req, res, next) => {
-  try {
-    if (mongoose.connection.readyState === 0) {
-      console.log('Serverless Lifecycle: Initializing Lazy Database Connection...');
-      await connectDB();
-    }
-    next();
-  } catch (err) {
-    console.error('SERVERLESS_DB_INIT_FAILURE:', err);
-    next();
-  }
-});
-
-// 2. CORS Configuration
-const allowedOrigins = [
-  'https://www.dclubfarmers.com',
-  'https://dclubfarmers.com',
-  'https://api.dclubfarmers.com',
-  'https://dclubfarmers-frontend.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000'
-];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.some(allowed => 
-      allowed === origin || allowed === origin.replace(/\/$/, '')
-    );
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
-
-// Handle Preflight globally
-app.options(/.*/, cors());
-
-// 3. Parser Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// 4. Initial Status Route
+// API Status (Root)
 app.get('/api/status', (req, res) => {
-  res.json({ status: 'API_ALIVE', timestamp: new Date().toISOString() });
+    res.json({ 
+        status: 'Operational', 
+        db: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+        time: new Date().toISOString() 
+    });
 });
 
-// 5. Root Dashboard (Priority)
-app.get('/', (req, res) => {
-  const state = mongoose.connection.readyState;
-  const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
-  res.json({
-    status: 'Operational',
-    project: 'DCLUB FARMERS API',
-    database: states[state] || 'Unknown',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// 6. API Routes
+// Mount Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/dpr', dprRoutes);
@@ -105,42 +53,23 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/blogs', blogRoutes);
-
-// SEO & Favicon
 app.use('/', seoRoutes);
+
+// Health & Root
+app.get('/', (req, res) => res.json({ project: 'DCLUB FARMERS' }));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
-});
-
-// 7. 404 Handler
-app.use((req, res) => {
-  res.status(404).json({ message: `Route ${req.originalUrl} not found` });
-});
-
-// 8. Global Error Handler
+// Global Error Handler
 app.use((err, req, res, next) => {
-  if (res.headersSent) return next(err);
-  console.error('SERVER_ERROR:', err);
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  }
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal Server Error'
-  });
+    console.error('CRITICAL_SERVER_ERROR:', err);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
 });
 
-// 9. Startup
-const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
-
+// Export for Vercel
 module.exports = app;
+
+// Local Development
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+}
