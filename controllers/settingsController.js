@@ -5,10 +5,11 @@ const Settings = require('../models/settingsModel');
 // @access  Public
 const getSettings = async (req, res) => {
   try {
-    const settings = await Settings.find({});
-    // Format to { key: value } for frontend compatibility if needed, 
-    // but the previous logic returned the raw array from Supabase? 
-    // Actually, Supabase findAll was likely returning rows.
+    const settingsRows = await Settings.find({});
+    const settings = {};
+    settingsRows.forEach(row => {
+      settings[row.key] = row.value;
+    });
     res.status(200).json(settings);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
