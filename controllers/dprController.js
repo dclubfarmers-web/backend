@@ -128,16 +128,23 @@ const getDPRs = async (req, res) => {
 // @route   PUT /api/dpr/:id/status
 // @access  Private/Admin
 const updateDPRStatus = async (req, res) => {
-  const { status } = req.body;
+  const { status, tenure, expected_profit, investment_value, expected_outcome } = req.body;
   const { id } = req.params;
 
   try {
-    const dpr = await DPR.findByIdAndUpdate(id, { status }, { new: true });
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (tenure !== undefined) updateData.tenure = Number(tenure);
+    if (expected_profit !== undefined) updateData.expected_profit = Number(expected_profit);
+    if (investment_value !== undefined) updateData.investment_value = Number(investment_value);
+    if (expected_outcome !== undefined) updateData.expected_outcome = Number(expected_outcome);
+
+    const dpr = await DPR.findByIdAndUpdate(id, updateData, { new: true });
     if (!dpr) return res.status(404).json({ message: 'DPR not found' });
-    res.status(200).json({ message: 'DPR status updated', dpr });
+    res.status(200).json({ message: 'DPR updated', dpr });
   } catch (err) {
-    console.error('UPDATE DPR STATUS ERROR:', err);
-    res.status(500).json({ message: 'Failed to update DPR status', error: err.message });
+    console.error('UPDATE DPR ERROR:', err);
+    res.status(500).json({ message: 'Failed to update DPR record', error: err.message });
   }
 };
 

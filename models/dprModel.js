@@ -39,6 +39,22 @@ const dprSchema = new mongoose.Schema({
     type: String,
     default: 'pending',
   },
+  tenure: {
+    type: Number,
+    default: 0,
+  },
+  expected_profit: {
+    type: Number,
+    default: 1.0,
+  },
+  investment_value: {
+    type: Number,
+    default: 0,
+  },
+  expected_outcome: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
