@@ -30,8 +30,19 @@ const app = express();
 // Trust proxy for Vercel / Load Balancers
 app.set('trust proxy', 1);
 
-// 1. Database Connection
-connectDB();
+// 1. Database Connection (Lazy Pattern for Serverless)
+app.use(async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState === 0) {
+      console.log('Serverless Lifecycle: Initializing Lazy Database Connection...');
+      await connectDB();
+    }
+    next();
+  } catch (err) {
+    console.error('SERVERLESS_DB_INIT_FAILURE:', err);
+    next();
+  }
+});
 
 // 2. CORS Configuration
 const allowedOrigins = [
@@ -45,13 +56,10 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
     const isAllowed = allowedOrigins.some(allowed => 
       allowed === origin || allowed === origin.replace(/\/$/, '')
     );
-
     if (isAllowed) {
       callback(null, true);
     } else {
@@ -63,27 +71,19 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// Explicitly handle OPTIONS requests for all routes (Express 5 syntax)
+// Handle Preflight globally
 app.options(/.*/, cors());
 
-// Security & Parser Middleware
+// 3. Parser Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 4. Rate Limiting (Disabled for production stability on Vercel)
-/*
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 2000, 
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many requests, please try again later.' },
-  skip: (req) => process.env.NODE_ENV !== 'production'
+// 4. Initial Status Route
+app.get('/api/status', (req, res) => {
+  res.json({ status: 'API_ALIVE', timestamp: new Date().toISOString() });
 });
-app.use('/api/', limiter);
-*/
 
-// Root endpoint - Live System Dashboard (Priority)
+// 5. Root Dashboard (Priority)
 app.get('/', (req, res) => {
   const state = mongoose.connection.readyState;
   const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
@@ -95,7 +95,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// 5. API Routes
+// 6. API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/dpr', dprRoutes);
@@ -106,43 +106,36 @@ app.use('/api/invitations', invitationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/blogs', blogRoutes);
 
-// SEO & Root Routes
+// SEO & Favicon
 app.use('/', seoRoutes);
 app.get('/favicon.ico', (req, res) => res.status(204).end());
-
-// Root endpoint moved to top
 
 // Health Check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// 6. 404 Handler
+// 7. 404 Handler
 app.use((req, res) => {
   res.status(404).json({ message: `Route ${req.originalUrl} not found` });
 });
 
-// 7. Global Error Handler
+// 8. Global Error Handler
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
-
   console.error('SERVER_ERROR:', err);
-  
-  // Re-inject CORS headers if missing
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
-
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack
+    message: err.message || 'Internal Server Error'
   });
 });
 
-// 8. Server Startup
+// 9. Startup
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => {
