@@ -44,6 +44,10 @@ const applicationSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  expected_outcome: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
