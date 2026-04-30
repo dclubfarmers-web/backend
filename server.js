@@ -4,8 +4,8 @@ const dns = require('dns');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-// Configure Google DNS for the application
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Configure DNS (using system defaults on Vercel)
+// dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');

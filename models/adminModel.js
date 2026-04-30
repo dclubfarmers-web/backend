@@ -37,8 +37,6 @@ adminSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const Admin = mongoose.model('Admin', adminSchema);
-
 // Ensure virtual fields are serialized
 adminSchema.set('toJSON', { virtuals: true });
 adminSchema.set('toObject', { virtuals: true });
@@ -47,5 +45,7 @@ adminSchema.set('toObject', { virtuals: true });
 adminSchema.virtual('id').get(function() {
   return this._id.toHexString();
 });
+
+const Admin = mongoose.model('Admin', adminSchema);
 
 module.exports = Admin;
