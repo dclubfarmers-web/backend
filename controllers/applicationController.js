@@ -7,7 +7,7 @@ const { getPresignedUrl, deleteFromS3 } = require('../utils/storageUtils');
 // @route   POST /api/applications
 // @access  Public
 const applyToJob = async (req, res) => {
-  let { jobId, fullName, email, phone, summary, resumeUrl, resumeKey } = req.body;
+  let { jobId, fullName, email, phone, summary, resumeUrl, resumeKey, tenure, expected_profit, investment_value } = req.body;
 
   try {
     let job;
@@ -33,7 +33,10 @@ const applyToJob = async (req, res) => {
       applicant_summary: summary,
       resume_url: resumeUrl,
       resume_key: resumeKey || req.body.resumeKey,
-      status: 'applied'
+      status: 'applied',
+      tenure: tenure || 0,
+      expected_profit: expected_profit || 1.0,
+      investment_value: investment_value || 0
     };
 
     if (req.user?.id && req.user.role !== 'admin') {

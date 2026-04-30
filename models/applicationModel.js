@@ -40,6 +40,10 @@ const applicationSchema = new mongoose.Schema({
     type: Number,
     default: 1.0,
   },
+  investment_value: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
