@@ -1,21 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middleware/uploadMiddleware');
-const { protect, optionalProtect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/s3UploadMiddleware');
+const { uploadFile, uploadFiles, deleteFile } = require('../controllers/uploadController');
+const { protect, admin, optionalProtect } = require('../middleware/authMiddleware');
 
-// @desc    Upload a file (image, pdf, etc.)
+// @desc    Upload a single file
 // @route   POST /api/upload
-// @access  Public (Optional Auth)
-router.post('/', optionalProtect, upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No file uploaded' });
-  }
+router.post('/', optionalProtect, upload.single('file'), uploadFile);
 
-  res.status(200).json({
-    message: 'File uploaded successfully',
-    url: req.file.path, // Cloudinary URL
-    public_id: req.file.filename,
-  });
-});
+// @desc    Upload multiple files
+// @route   POST /api/upload/multiple
+router.post('/multiple', optionalProtect, upload.array('files', 10), uploadFiles);
+
+// @desc    Delete a file from S3
+// @route   DELETE /api/upload
+router.delete('/', protect, admin, deleteFile);
 
 module.exports = router;

@@ -1,52 +1,37 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 
-const Job = {
-  async findAll() {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+const jobSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
   },
-
-  async findById(id) {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return data;
+  description: {
+    type: String,
   },
-
-  async create(jobData) {
-    const { data, error } = await supabase
-      .from('jobs')
-      .insert([jobData])
-      .select();
-    if (error) throw error;
-    return data[0];
+  company: {
+    type: String,
   },
-
-  async update(id, jobData) {
-    const { data, error } = await supabase
-      .from('jobs')
-      .update(jobData)
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    return data[0];
+  salary: {
+    type: String,
   },
+  location: {
+    type: String,
+  },
+  job_type: {
+    type: String,
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+  },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
 
-  async delete(id) {
-    const { error } = await supabase
-      .from('jobs')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-    return true;
-  }
-};
+jobSchema.set('toJSON', { virtuals: true });
+jobSchema.set('toObject', { virtuals: true });
+jobSchema.virtual('id').get(function() { return this._id.toHexString(); });
+
+const Job = mongoose.model('Job', jobSchema);
 
 module.exports = Job;

@@ -7,24 +7,27 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
     // Determine folder and resource type
-    let folder = 'DCLUB FARMERS/misc';
-    let resource_type = 'auto'; // Handles images, pdfs, etc.
+    const baseFolder = 'DCLUB FARMERS';
+    let subFolder = req.body.folder || 'misc';
 
-    if (file.mimetype.startsWith('image/')) {
-      folder = 'DCLUB FARMERS/images';
-    } else if (file.mimetype === 'application/pdf') {
-      folder = 'DCLUB FARMERS/documents';
+    // Auto-detect based on type if no specific folder sent or if using defaults
+    if (!req.body.folder) {
+      if (file.mimetype.startsWith('image/')) {
+        subFolder = 'images';
+      } else if (file.mimetype === 'application/pdf') {
+        subFolder = 'documents';
+      }
     }
 
     return {
-      folder: folder,
-      resource_type: resource_type,
+      folder: `${baseFolder}/${subFolder}`,
+      resource_type: 'auto',
       public_id: `${Date.now()}-${file.originalname.split('.')[0]}`,
     };
   },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });

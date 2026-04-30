@@ -2,7 +2,6 @@ const Invitation = require('../models/invitationModel');
 const Admin = require('../models/adminModel');
 const sendEmail = require('../config/mailer');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
 
 // @desc    Invite a new admin
 // @route   POST /api/invitations
@@ -17,6 +16,7 @@ const inviteAdmin = async (req, res) => {
       role: role || 'admin',
       token,
       invited_by: req.user.id,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
     });
 
     const inviteLink = `${process.env.FRONTEND_URL || 'https://www.dclubfarmers.com'}/admin/accept-invite?token=${token}`;
@@ -49,14 +49,14 @@ const acceptInvitation = async (req, res) => {
   const { token, fullName, password } = req.body;
 
   try {
-    const invitation = await Invitation.findByToken(token);
+    const invitation = await Invitation.findOne({ token });
     
     if (!invitation) {
       return res.status(404).json({ message: 'Invalid or expired invitation token' });
     }
 
     if (new Date(invitation.expires_at) < new Date()) {
-      await Invitation.delete(invitation.id);
+      await Invitation.findByIdAndDelete(invitation._id);
       return res.status(400).json({ message: 'Invitation has expired' });
     }
 
@@ -64,12 +64,12 @@ const acceptInvitation = async (req, res) => {
     const admin = await Admin.create({
       full_name: fullName,
       email: invitation.email,
-      password: password, // Admin.create hashes the password
+      password: password,
       role: invitation.role
     });
 
     // Delete the invitation
-    await Invitation.delete(invitation.id);
+    await Invitation.findByIdAndDelete(invitation._id);
 
     res.status(201).json({ message: 'Account created successfully', user: admin });
   } catch (err) {
@@ -83,7 +83,7 @@ const acceptInvitation = async (req, res) => {
 // @access  Private/Admin
 const getInvitations = async (req, res) => {
   try {
-    const invitations = await Invitation.findAll();
+    const invitations = await Invitation.find({}).populate('invited_by', 'full_name email').sort({ created_at: -1 });
     res.status(200).json(invitations);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -96,7 +96,7 @@ const getInvitationByToken = async (req, res) => {
   const { token } = req.params;
 
   try {
-    const invitation = await Invitation.findByToken(token);
+    const invitation = await Invitation.findOne({ token });
     
     if (!invitation) {
       return res.status(404).json({ message: 'Invalid or expired invitation token' });

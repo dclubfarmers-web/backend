@@ -1,42 +1,32 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 
-const Invitation = {
-  async findAll() {
-    const { data, error } = await supabase
-      .from('invitations')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+const invitationSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
   },
-
-  async create(invitationData) {
-    const { data, error } = await supabase
-      .from('invitations')
-      .insert([invitationData])
-      .select();
-    if (error) throw error;
-    return data[0];
+  role: {
+    type: String,
+    default: 'admin',
   },
-
-  async findByToken(token) {
-    const { data, error } = await supabase
-      .from('invitations')
-      .select('*')
-      .eq('token', token)
-      .single();
-    if (error) throw error;
-    return data;
+  token: {
+    type: String,
+    required: true,
+    unique: true,
   },
+  invited_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+  },
+  expires_at: {
+    type: Date,
+    required: true,
+  },
+}, {
+  timestamps: { createdAt: 'created_at' }
+});
 
-  async delete(id) {
-    const { error } = await supabase
-      .from('invitations')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-    return true;
-  }
-};
+const Invitation = mongoose.model('Invitation', invitationSchema);
 
 module.exports = Invitation;

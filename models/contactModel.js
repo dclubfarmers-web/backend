@@ -1,42 +1,29 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 
-const Contact = {
-  async findAll() {
-    const { data, error } = await supabase
-      .from('contacts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+const contactSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
   },
-
-  async create(contactData) {
-    const { data, error } = await supabase
-      .from('contacts')
-      .insert([contactData])
-      .select();
-    if (error) throw error;
-    return data[0];
+  email: {
+    type: String,
+    required: true,
   },
-
-  async markAsRead(id) {
-    const { data, error } = await supabase
-      .from('contacts')
-      .update({ is_read: true })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    return data[0];
+  subject: {
+    type: String,
   },
+  message: {
+    type: String,
+    required: true,
+  },
+  is_read: {
+    type: Boolean,
+    default: false,
+  },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
 
-  async delete(id) {
-    const { error } = await supabase
-      .from('contacts')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-    return true;
-  }
-};
+const Contact = mongoose.model('Contact', contactSchema);
 
 module.exports = Contact;

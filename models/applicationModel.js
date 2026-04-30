@@ -1,50 +1,45 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 
-const Application = {
-  async findAll() {
-    const { data, error } = await supabase
-      .from('applications')
-      .select(`
-        *,
-        job:job_id (title, company),
-        applicant:applicant_id (email)
-      `)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+const applicationSchema = new mongoose.Schema({
+  job_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job',
+    required: true,
   },
-
-  async findByUserId(userId) {
-    const { data, error } = await supabase
-      .from('applications')
-      .select(`
-        *,
-        job:job_id (title, company)
-      `)
-      .eq('applicant_id', userId)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+  applicant_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
   },
-
-  async create(applicationData) {
-    const { data, error } = await supabase
-      .from('applications')
-      .insert([applicationData])
-      .select();
-    if (error) throw error;
-    return data[0];
+  guest_name: {
+    type: String,
   },
+  guest_email: {
+    type: String,
+  },
+  guest_phone: {
+    type: String,
+  },
+  applicant_summary: {
+    type: String,
+  },
+  resume_url: {
+    type: String,
+  },
+  resume_key: {
+    type: String,
+  },
+  status: {
+    type: String,
+    default: 'applied',
+  },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
 
-  async updateStatus(id, status) {
-    const { data, error } = await supabase
-      .from('applications')
-      .update({ status })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    return data[0];
-  }
-};
+applicationSchema.set('toJSON', { virtuals: true });
+applicationSchema.set('toObject', { virtuals: true });
+applicationSchema.virtual('id').get(function() { return this._id.toHexString(); });
+
+const Application = mongoose.model('Application', applicationSchema);
 
 module.exports = Application;

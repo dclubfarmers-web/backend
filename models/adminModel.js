@@ -1,48 +1,51 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const Admin = {
-  async findByEmail(email) {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+const adminSchema = new mongoose.Schema({
+  full_name: {
+    type: String,
+    required: true,
   },
-
-  async findById(id) {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('id', id)
-      .single();
-    if (error) throw error;
-    return data;
+  email: {
+    type: String,
+    required: true,
+    unique: true,
   },
-
-  async create(adminData) {
-    const hashedPassword = await bcrypt.hash(adminData.password, 10);
-    const { data, error } = await supabase
-      .from('admins')
-      .insert([{
-        ...adminData,
-        password: hashedPassword
-      }])
-      .select();
-    if (error) throw error;
-    return data[0];
+  password: {
+    type: String,
+    required: true,
   },
+  role: {
+    type: String,
+    default: 'admin',
+  },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
 
-  async findAll() {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('id, full_name, email, role, created_at')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+// Hash password before saving
+adminSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    next();
   }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Compare password
+adminSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
+
+const Admin = mongoose.model('Admin', adminSchema);
+
+// Ensure virtual fields are serialized
+adminSchema.set('toJSON', { virtuals: true });
+adminSchema.set('toObject', { virtuals: true });
+
+// Add virtual id
+adminSchema.virtual('id').get(function() {
+  return this._id.toHexString();
+});
 
 module.exports = Admin;

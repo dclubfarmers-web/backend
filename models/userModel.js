@@ -1,36 +1,38 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const User = {
-  async register(userData) {
-    const { email, password, fullName, role } = userData;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: role || 'user',
-        },
-      },
-    });
-    if (error) throw error;
-    return data;
+const userSchema = new mongoose.Schema({
+  full_name: {
+    type: String,
+    required: true,
   },
-
-  async login(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    return data;
+  email: {
+    type: String,
+    required: true,
+    unique: true,
   },
+  password: {
+    type: String,
+    required: true,
+  },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
 
-  async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    return true;
+// Hash password before saving
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    next();
   }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Compare password
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
+
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

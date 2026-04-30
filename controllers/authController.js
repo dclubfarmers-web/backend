@@ -1,12 +1,16 @@
 const Admin = require('../models/adminModel');
+const Job = require('../models/jobModel');
+const Application = require('../models/applicationModel');
+const DPR = require('../models/dprModel');
+const User = require('../models/userModel');
+const Settings = require('../models/settingsModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../config/mailer');
-const supabase = require('../config/db');
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role, name: user.full_name }, 
+    { id: user._id, email: user.email, role: user.role, name: user.full_name }, 
     process.env.JWT_SECRET || 'secret', 
     { expiresIn: '30d' }
   );
@@ -19,13 +23,13 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const admin = await Admin.findByEmail(email);
+    const admin = await Admin.findOne({ email });
 
-    if (admin && (await bcrypt.compare(password, admin.password))) {
+    if (admin && (await admin.matchPassword(password))) {
       res.json({
         message: 'Login successful',
         user: {
-          id: admin.id,
+          id: admin._id,
           full_name: admin.full_name,
           email: admin.email,
           role: admin.role,
@@ -46,7 +50,7 @@ const setupFirstAdmin = async (req, res) => {
     const { email, password, fullName, siteName } = req.body;
   
     try {
-      const { data: isInit } = await supabase.from('settings').select('*').eq('key', 'system_initialized').single();
+      const isInit = await Settings.findOne({ key: 'system_initialized' });
       if (isInit) return res.status(403).json({ message: 'System is already initialized' });
   
       const admin = await Admin.create({
@@ -56,7 +60,7 @@ const setupFirstAdmin = async (req, res) => {
         role: 'admin'
       });
   
-      await supabase.from('settings').upsert([
+      await Settings.insertMany([
         { key: 'system_initialized', value: { date: new Date(), by: email } },
         { key: 'seo', value: { title: siteName || 'DCLUB FARMERS', description: 'Premier Aviation Solutions' } },
         { key: 'contact', value: { email: email, phone: '', address: '' } }
@@ -84,7 +88,12 @@ const setupFirstAdmin = async (req, res) => {
   
       res.status(201).json({ 
         message: 'First admin created', 
-        user: admin,
+        user: {
+            id: admin._id,
+            full_name: admin.full_name,
+            email: admin.email,
+            role: admin.role
+        },
         token: generateToken(admin)
       });
     } catch (err) {
@@ -101,19 +110,19 @@ const getProfile = async (req, res) => {
 // @route   GET /api/auth/stats
 const getDashboardStats = async (req, res) => {
   try {
-    const { count: jobs } = await supabase.from('jobs').select('*', { count: 'exact', head: true });
-    const { count: applications } = await supabase.from('applications').select('*', { count: 'exact', head: true });
-    const { count: dprs } = await supabase.from('dprs').select('*', { count: 'exact', head: true });
-    const { count: users } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    const jobsCount = await Job.countDocuments();
+    const applicationsCount = await Application.countDocuments();
+    const dprsCount = await DPR.countDocuments();
+    const usersCount = await User.countDocuments();
 
     res.json({
-      jobs: jobs || 0,
-      applications: applications || 0,
-      dprs: dprs || 0,
-      users: users || 0,
+      jobs: jobsCount || 0,
+      applications: applicationsCount || 0,
+      dprs: dprsCount || 0,
+      users: usersCount || 0,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch stats' });
+    res.status(500).json({ message: 'Failed to fetch stats', error: err.message });
   }
 };
 
@@ -123,7 +132,12 @@ const registerAdmin = async (req, res) => {
   const { name, email, password } = req.body;
   try {
     const admin = await Admin.create({ full_name: name, email, password, role: 'admin' });
-    res.status(201).json(admin);
+    res.status(201).json({
+        id: admin._id,
+        full_name: admin.full_name,
+        email: admin.email,
+        role: admin.role
+    });
   } catch (err) {
     res.status(500).json({ message: 'Registration failed', error: err.message });
   }
@@ -133,10 +147,10 @@ const registerAdmin = async (req, res) => {
 // @route   GET /api/auth/admins
 const getAllAdmins = async (req, res) => {
   try {
-    const admins = await Admin.findAll();
+    const admins = await Admin.find({}).select('-password').sort({ created_at: -1 });
     res.json(admins);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch admins' });
+    res.status(500).json({ message: 'Failed to fetch admins', error: err.message });
   }
 };
 
@@ -145,10 +159,10 @@ const getAllAdmins = async (req, res) => {
 const deleteAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    await Admin.delete(id);
+    await Admin.findByIdAndDelete(id);
     res.json({ message: 'Admin removed successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Deletion failed' });
+    res.status(500).json({ message: 'Deletion failed', error: err.message });
   }
 };
 

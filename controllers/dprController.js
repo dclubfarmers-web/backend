@@ -1,23 +1,39 @@
 const DPR = require('../models/dprModel');
+const Job = require('../models/jobModel');
 const sendEmail = require('../config/mailer');
+const { getPresignedUrl, deleteFromS3 } = require('../utils/storageUtils');
 
 // @desc    Create a new DPR record
 // @route   POST /api/dpr
 // @access  Private
 const createDPR = async (req, res) => {
-  const { title, details, dreamValue, dprUrl, fullName, email, phone } = req.body;
+  const { title, details, dreamValue, dprUrl, dprKey, fullName, email, phone } = req.body;
 
   try {
+    // Find the Dream Achiever Program job or create a placeholder
+    let job = await Job.findOne({ title: 'Dream Achiever Program' });
+    if (!job) {
+        job = await Job.create({
+            title: 'Dream Achiever Program',
+            description: 'Elite incubation program for high-impact agricultural visionaries.',
+            company: 'DJAIRINDIA',
+            location: 'Remote',
+            job_type: 'Elite'
+        });
+    }
+
     const dprData = {
+      job_id: job._id,
       title,
       details,
       dream_value: dreamValue,
       status: 'pending',
-      dpr_url: dprUrl
+      dpr_url: dprUrl,
+      dpr_key: dprKey
     };
 
-    if (req.user?.id) {
-        dprData.user_id = req.user.id;
+    if (req.user?.id && req.user.role !== 'admin') {
+        dprData.applicant_id = req.user.id;
     } else {
         dprData.guest_name = fullName;
         dprData.guest_email = email;
@@ -26,33 +42,36 @@ const createDPR = async (req, res) => {
 
     const dpr = await DPR.create(dprData);
 
+    const targetEmail = email || req.user?.email;
+    const targetName = fullName || req.user?.full_name || 'Visionary';
+
     // Send Confirmation Email
     try {
-      // To User
-      await sendEmail({
-        to: req.user.email,
-        subject: `DPR Request Submitted: ${title}`,
-        text: `Your DPR request for ${title} has been submitted for review.`,
-        html: `
-          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #0891B2;">Request Submitted</h2>
-            <p>Hi,</p>
-            <p>Your **Dream Achiever (DPR)** request for "<strong>${title}</strong>" has been submitted successfully.</p>
-            <p><strong>Dream Value:</strong> ₹${dreamValue.toLocaleString()}</p>
-            <p>Our team will review your request and update the status in your dashboard.</p>
-          </div>
-        `,
-      });
+      if (targetEmail) {
+        await sendEmail({
+          to: targetEmail,
+          subject: `DPR Request Submitted: ${title}`,
+          text: `Your DPR request for ${title} has been submitted for review.`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #0891B2;">Request Submitted</h2>
+              <p>Hi ${targetName},</p>
+              <p>Your **Dream Achiever (DPR)** request for "<strong>${title}</strong>" has been submitted successfully.</p>
+              <p><strong>Dream Value:</strong> ₹${dreamValue.toLocaleString()}</p>
+              <p>Our team will review your request and update the status in your dashboard.</p>
+            </div>
+          `,
+        });
+      }
 
-      // To Admin
       await sendEmail({
         to: process.env.EMAIL_USER,
         subject: `NEW DPR REQUEST: ${title}`,
-        text: `New DPR request from ${req.user.full_name} (${req.user.email}). Vision: ${title}. Value: ₹${dreamValue}`,
+        text: `New DPR request from ${targetName} (${targetEmail || 'Guest'}). Vision: ${title}. Value: ₹${dreamValue}`,
         html: `
           <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
             <h2 style="color: #0891B2;">New Dream Asset Request</h2>
-            <p><strong>Dreamer:</strong> ${req.user.full_name} (${req.user.email})</p>
+            <p><strong>Dreamer:</strong> ${targetName} (${targetEmail || 'Guest'})</p>
             <p><strong>Vision:</strong> ${title}</p>
             <p><strong>Target Value:</strong> ₹${dreamValue.toLocaleString()}</p>
             <p><strong>Insights:</strong> ${details}</p>
@@ -80,19 +99,25 @@ const getDPRs = async (req, res) => {
     const userRole = req.user?.role;
     const userId = req.user?.id;
 
-    console.log(`GET DPRs requested by: ${req.user?.email || 'Unknown'}, Role: ${userRole}`);
-    
-    // If not admin, only show user's own DPRs
     if (userRole === 'admin') {
-      dprs = await DPR.findAll();
+      dprs = await DPR.find({}).sort({ created_at: -1 }).populate('applicant_id', 'full_name email');
     } else {
       if (!userId) {
           return res.status(401).json({ message: 'User identity not found' });
       }
-      dprs = await DPR.findByUserId(userId);
+      dprs = await DPR.find({ applicant_id: userId }).sort({ created_at: -1 });
     }
 
-    res.status(200).json(dprs || []);
+    // Generate pre-signed URLs
+    const enhancedDPRs = await Promise.all((dprs || []).map(async (dpr) => {
+      const dprObj = dpr.toObject();
+      if (dprObj.dpr_key) {
+        dprObj.dpr_url = await getPresignedUrl(dprObj.dpr_key);
+      }
+      return dprObj;
+    }));
+
+    res.status(200).json(enhancedDPRs);
   } catch (err) {
     console.error('GET DPRs ERROR:', err);
     res.status(500).json({ message: 'Failed to fetch DPR records', error: err.message });
@@ -106,12 +131,9 @@ const updateDPRStatus = async (req, res) => {
   const { status } = req.body;
   const { id } = req.params;
 
-  if (!id || !status) {
-      return res.status(400).json({ message: 'ID and Status are required' });
-  }
-
   try {
-    const dpr = await DPR.update(id, { status });
+    const dpr = await DPR.findByIdAndUpdate(id, { status }, { new: true });
+    if (!dpr) return res.status(404).json({ message: 'DPR not found' });
     res.status(200).json({ message: 'DPR status updated', dpr });
   } catch (err) {
     console.error('UPDATE DPR STATUS ERROR:', err);
@@ -119,8 +141,28 @@ const updateDPRStatus = async (req, res) => {
   }
 };
 
+// @desc    Delete DPR record
+// @route   DELETE /api/dpr/:id
+// @access  Private/Admin
+const deleteDPR = async (req, res) => {
+  try {
+    const dpr = await DPR.findById(req.params.id);
+    if (!dpr) return res.status(404).json({ message: 'DPR not found' });
+
+    if (dpr.dpr_key) {
+      await deleteFromS3(dpr.dpr_key);
+    }
+    
+    await DPR.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'DPR and associated media deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 module.exports = {
   createDPR,
   getDPRs,
   updateDPRStatus,
+  deleteDPR,
 };

@@ -62,7 +62,7 @@ const submitContact = async (req, res) => {
 // @access  Private/Admin
 const getMessages = async (req, res) => {
   try {
-    const messages = await Contact.findAll();
+    const messages = await Contact.find({}).sort({ created_at: -1 });
     res.status(200).json(messages);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -74,7 +74,8 @@ const getMessages = async (req, res) => {
 // @access  Private/Admin
 const markRead = async (req, res) => {
   try {
-    const contact = await Contact.markAsRead(req.params.id);
+    const contact = await Contact.findByIdAndUpdate(req.params.id, { is_read: true }, { new: true });
+    if (!contact) return res.status(404).json({ message: 'Message not found' });
     res.status(200).json(contact);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -86,7 +87,8 @@ const markRead = async (req, res) => {
 // @access  Private/Admin
 const deleteMessage = async (req, res) => {
   try {
-    await Contact.delete(req.params.id);
+    const contact = await Contact.findByIdAndDelete(req.params.id);
+    if (!contact) return res.status(404).json({ message: 'Message not found' });
     res.status(200).json({ message: 'Message deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

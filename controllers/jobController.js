@@ -6,7 +6,9 @@ const logActivity = require('../middleware/auditMiddleware');
 // @access  Public
 const getJobs = async (req, res) => {
   try {
-    const jobs = await Job.findAll();
+    const jobs = await Job.find({ 
+      title: { $nin: ['Dream Achiever Program', 'General Talent Pool'] } 
+    }).sort({ created_at: -1 });
     res.status(200).json(jobs);
   } catch (err) {
     console.error('SERVER ERROR IN GET JOBS:', err);
@@ -47,7 +49,8 @@ const createJob = async (req, res) => {
 // @access  Private/Admin
 const updateJob = async (req, res) => {
   try {
-    const job = await Job.update(req.params.id, req.body);
+    const job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!job) return res.status(404).json({ message: 'Job not found' });
     await logActivity(req, 'UPDATE', 'JOB', `Updated job: ${job.title}`);
     res.status(200).json(job);
   } catch (err) {
@@ -60,7 +63,8 @@ const updateJob = async (req, res) => {
 // @access  Private/Admin
 const deleteJob = async (req, res) => {
   try {
-    await Job.delete(req.params.id);
+    const job = await Job.findByIdAndDelete(req.params.id);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
     await logActivity(req, 'DELETE', 'JOB', `Deleted job ID: ${req.params.id}`);
     res.status(200).json({ message: 'Job deleted' });
   } catch (err) {

@@ -1,27 +1,19 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 
-const Settings = {
-  async getAll() {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('*');
-    if (error) throw error;
-    
-    // Transform array to object for easier use
-    return data.reduce((acc, current) => {
-      acc[current.key] = current.value;
-      return acc;
-    }, {});
+const settingsSchema = new mongoose.Schema({
+  key: {
+    type: String,
+    required: true,
+    unique: true,
   },
+  value: {
+    type: mongoose.Schema.Types.Mixed,
+    required: true,
+  },
+}, {
+  timestamps: { updatedAt: 'updated_at' }
+});
 
-  async update(key, value) {
-    const { data, error } = await supabase
-      .from('settings')
-      .upsert({ key, value, updated_at: new Date() })
-      .select();
-    if (error) throw error;
-    return data[0];
-  }
-};
+const Settings = mongoose.model('Settings', settingsSchema);
 
 module.exports = Settings;

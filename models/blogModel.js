@@ -1,53 +1,44 @@
-const supabase = require('../config/db');
+const mongoose = require('mongoose');
 
-const Blog = {
-  async findAll(includeUnpublished = false) {
-    let query = supabase.from('blogs').select('*');
-    if (!includeUnpublished) {
-      query = query.eq('is_published', true);
-    }
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+const blogSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
   },
-
-  async findBySlug(slug) {
-    const { data, error } = await supabase
-      .from('blogs')
-      .select('*')
-      .eq('slug', slug)
-      .single();
-    if (error) throw error;
-    return data;
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
   },
-
-  async create(blogData) {
-    const { data, error } = await supabase
-      .from('blogs')
-      .insert([blogData])
-      .select();
-    if (error) throw error;
-    return data[0];
+  content: {
+    type: String,
+    required: true,
   },
-
-  async update(id, blogData) {
-    const { data, error } = await supabase
-      .from('blogs')
-      .update({ ...blogData, updated_at: new Date() })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    return data[0];
+  excerpt: {
+    type: String,
   },
+  author_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+  },
+  image_url: {
+    type: String,
+  },
+  image_key: {
+    type: String,
+  },
+  is_published: {
+    type: Boolean,
+    default: false,
+  },
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
 
-  async delete(id) {
-    const { error } = await supabase
-      .from('blogs')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-    return true;
-  }
-};
+blogSchema.set('toJSON', { virtuals: true });
+blogSchema.set('toObject', { virtuals: true });
+blogSchema.virtual('id').get(function() { return this._id.toHexString(); });
+
+const Blog = mongoose.model('Blog', blogSchema);
 
 module.exports = Blog;
