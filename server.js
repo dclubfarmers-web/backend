@@ -1,19 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const dns = require('dns');
 require('dotenv').config();
 
-// Configure Google DNS (Only for local development to avoid Vercel startup crashes)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  try {
-    dns.setServers(['8.8.8.8', '8.8.4.4']);
-  } catch (e) {
-    console.warn('DNS: Failed to set Google DNS servers, using system defaults.');
-  }
-}
+// Global Error Catching for Serverless Stability
+process.on('uncaughtException', (err) => {
+  console.error('CRITICAL UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL UNHANDLED REJECTION:', reason);
+});
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -70,10 +66,7 @@ app.use(cors({
 // Explicitly handle OPTIONS requests for all routes (Express 5 syntax)
 app.options(/.*/, cors());
 
-// 3. Security & Parser Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+// Security & Parser Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
