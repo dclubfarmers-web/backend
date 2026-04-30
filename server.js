@@ -16,14 +16,31 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// API Status (Root) - Moved above DB middleware for debugging
-app.get('/api/status', (req, res) => {
-    res.json({ 
-        status: 'Operational', 
-        db: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting/Disconnected',
-        time: new Date().toISOString() 
-    });
+// API Status (Root Dashboard)
+app.get('/', (req, res) => {
+    const status = {
+        project: 'DCLUB FARMERS',
+        status: 'Operational',
+        database: {
+            state: mongoose.connection.readyState === 1 ? 'Connected' : 
+                   mongoose.connection.readyState === 2 ? 'Connecting' : 'Disconnected',
+            host: mongoose.connection.host || 'N/A'
+        },
+        environment: process.env.NODE_ENV || 'production',
+        vercel: !!process.env.VERCEL,
+        system: {
+            uptime: Math.floor(process.uptime()) + 's',
+            memory: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + ' MB',
+            node: process.version,
+            platform: process.platform
+        },
+        timestamp: new Date().toISOString()
+    };
+    res.json(status);
 });
+
+// Legacy status redirect
+app.get('/api/status', (req, res) => res.redirect('/'));
 
 // Lazy Database Connection Middleware
 app.use(async (req, res, next) => {
@@ -61,8 +78,6 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/', seoRoutes);
 
-// Health & Root
-app.get('/', (req, res) => res.json({ project: 'DCLUB FARMERS' }));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Global Error Handler
