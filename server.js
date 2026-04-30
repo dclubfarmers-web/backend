@@ -1,11 +1,15 @@
 const express = require('express');
 const cors = require('cors');
-const dns = require('dns');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const dns = require('dns');
 require('dotenv').config();
 
-// Configure DNS (using system defaults on Vercel)
-// dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Configure Google DNS
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+// Import Routes
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const dprRoutes = require('./routes/dprRoutes');
@@ -18,24 +22,13 @@ const blogRoutes = require('./routes/blogRoutes');
 const seoRoutes = require('./routes/seoRoutes');
 const connectDB = require('./config/mongodb');
 
-// Connect to Database
-connectDB();
-
-// Import package.json safely
-let pkg = { version: '1.0.0' };
-try {
-  pkg = require('./package.json');
-} catch (e) {
-  console.error('Could not load package.json');
-}
-
-// Security and rate limiting disabled for debugging 500 error
-// const helmet = require('helmet');
-// const rateLimit = require('express-rate-limit');
-
+// Initialize Express
 const app = express();
 
-// 1. CORS Policy - MUST BE FIRST to handle preflight requests and set headers for all responses
+// 1. Database Connection
+connectDB();
+
+// 2. CORS Configuration
 const allowedOrigins = [
   'https://www.dclubfarmers.com',
   'https://dclubfarmers.com',
@@ -46,21 +39,18 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
-    const isAllowed = allowedOrigins.some(allowed => {
-      return allowed === origin || allowed === origin.replace(/\/$/, '');
-    });
+    const isAllowed = allowedOrigins.some(allowed => 
+      allowed === origin || allowed === origin.replace(/\/$/, '')
+    );
 
     if (isAllowed) {
       callback(null, true);
     } else {
-      // In production, we still want to allow but maybe log
-      // For now, let's be strict but ensure we don't break the flow
-      console.warn('CORS request from unauthorized origin:', origin);
-      callback(null, true); // Temporarily allow all to debug if the origin matching is the issue
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -68,19 +58,28 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// Explicitly handle OPTIONS requests for all routes
-app.options('*', cors());
+// Explicitly handle OPTIONS requests for all routes (Express 5 syntax)
+app.options(/.*/, cors());
 
-// 2. Security Middleware
-// app.use(helmet({
-//   crossOriginResourcePolicy: { policy: "cross-origin" }
-// }));
+// 3. Security & Parser Middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// app.use('/api/', limiter);
+// 4. Rate Limiting (Optimized for Vercel)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 2000, 
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests, please try again later.' },
+  skip: (req) => process.env.NODE_ENV !== 'production'
+});
+app.use('/api/', limiter);
 
-app.use(express.json({ limit: '10kb' })); // Body parser, with limit to prevent large payload attacks
-
-// Routes
+// 5. API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/dpr', dprRoutes);
@@ -90,47 +89,44 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/blogs', blogRoutes);
-app.use('/', seoRoutes); // Mount SEO routes (sitemap, robots)
 
-// Favicon handler to prevent 404s
+// SEO & Root Routes
+app.use('/', seoRoutes);
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Root endpoint - Live System Dashboard
-app.get('/', async (req, res) => {
-  try {
-    const state = mongoose.connection.readyState;
-    const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
-    const dbStatus = states[state] || 'Unknown';
-
-    res.json({
-      project: 'DCLUB FARMERS',
-      api_status: 'Operational',
-      database: dbStatus,
-      timestamp: new Date().toISOString()
-    });
-  } catch (e) {
-    res.status(500).json({ error: 'Internal Dashboard Error', message: e.message });
-  }
-});
-
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// Global Error Handler
-app.use((err, req, res, next) => {
-  // If headers already sent, delegate to default express error handler
-  if (res.headersSent) {
-    return next(err);
-  }
-
-  console.error('Unhandled Error:', err);
+// Root Dashboard
+app.get('/', (req, res) => {
+  const state = mongoose.connection.readyState;
+  const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
   
-  // Ensure CORS headers are present even in error responses
+  res.json({
+    status: 'Operational',
+    project: 'DCLUB FARMERS API',
+    database: states[state] || 'Unknown',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
+// 6. 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.originalUrl} not found` });
+});
+
+// 7. Global Error Handler
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+
+  console.error('SERVER_ERROR:', err);
+  
+  // Re-inject CORS headers if missing
   const origin = req.headers.origin;
-  if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes(origin.replace(/\/$/, '')))) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -138,13 +134,12 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'production' ? {} : err
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack
   });
 });
 
+// 8. Server Startup
 const PORT = process.env.PORT || 5000;
-
-// Only listen if not running on Vercel
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
