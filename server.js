@@ -6,8 +6,14 @@ const rateLimit = require('express-rate-limit');
 const dns = require('dns');
 require('dotenv').config();
 
-// Configure Google DNS
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Configure Google DNS (Only for local development to avoid Vercel startup crashes)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  try {
+    dns.setServers(['8.8.8.8', '8.8.4.4']);
+  } catch (e) {
+    console.warn('DNS: Failed to set Google DNS servers, using system defaults.');
+  }
+}
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -94,7 +100,7 @@ app.use('/api/blogs', blogRoutes);
 app.use('/', seoRoutes);
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Root Dashboard
+// Root endpoint - Live System Dashboard
 app.get('/', (req, res) => {
   const state = mongoose.connection.readyState;
   const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
@@ -103,8 +109,7 @@ app.get('/', (req, res) => {
     status: 'Operational',
     project: 'DCLUB FARMERS API',
     database: states[state] || 'Unknown',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    timestamp: new Date().toISOString()
   });
 });
 
