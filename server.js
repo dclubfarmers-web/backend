@@ -1,4 +1,5 @@
 const express = require('express');
+require('dns').setServers(['8.8.8.8', '8.8.4.4']);
 const cors = require('cors');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
@@ -17,7 +18,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Status (Root Dashboard)
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+    // Proactively try to connect if disconnected to provide real-time status
+    try {
+        await connectDB();
+    } catch (e) {
+        // Just log, we still want to show the status page
+    }
+
     const status = {
         project: 'DCLUB FARMERS',
         status: 'Operational',
@@ -92,5 +100,12 @@ module.exports = app;
 // Local Development
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+    app.listen(PORT, async () => {
+        console.log(`Backend running on port ${PORT}`);
+        try {
+            await connectDB();
+        } catch (e) {
+            console.error('Initial DB Connection Failed:', e.message);
+        }
+    });
 }
