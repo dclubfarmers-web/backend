@@ -16,10 +16,23 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// API Status (Root) - Moved above DB middleware for debugging
+app.get('/api/status', (req, res) => {
+    res.json({ 
+        status: 'Operational', 
+        db: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting/Disconnected',
+        time: new Date().toISOString() 
+    });
+});
+
 // Lazy Database Connection Middleware
 app.use(async (req, res, next) => {
-    await connectDB();
-    next();
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        next(err);
+    }
 });
 
 // Import Routes
@@ -34,14 +47,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const seoRoutes = require('./routes/seoRoutes');
 
-// API Status (Root)
-app.get('/api/status', (req, res) => {
-    res.json({ 
-        status: 'Operational', 
-        db: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-        time: new Date().toISOString() 
-    });
-});
+
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
